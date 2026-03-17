@@ -1,0 +1,10 @@
+{
+	http_port 8080
+	admin off
+	frankenphp
+}
+
+:8080 {
+	root * /app/tests/public
+	php
+}

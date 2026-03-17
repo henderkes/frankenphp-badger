@@ -1,0 +1,119 @@
+x-build-common: &build-common
+  context: .
+  dockerfile: Dockerfile
+
+services:
+  # === PHP 8.3 - all serializers ===
+  test-php83-all:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.3"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === PHP 8.4 - all serializers ===
+  test-php84-all:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === PHP 8.5 - all serializers ===
+  test-php85-all:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.5"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === PHP 8.4 - igbinary only ===
+  test-php84-igbinary-only:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === PHP 8.4 - msgpack only ===
+  test-php84-msgpack-only:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === PHP 8.4 - php serialize only ===
+  test-php84-php-only:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/run_tests.php"]
+
+  # === Persistence test ===
+  test-persistence:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["sh", "/app/scripts/test_persistence.sh"]
+    environment:
+      - BADGER_DATA_DIR=/tmp/badger-data
+    tmpfs:
+      - /tmp/badger-data
+
+  # === Parallel server isolation ===
+  server1:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "run", "--config", "/app/tests/Caddyfile.server1"]
+
+  server2:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "run", "--config", "/app/tests/Caddyfile.server2"]
+
+  test-parallel-client:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/test_parallel.php"]
+    environment:
+      - SERVER1_URL=http://server1:8080
+      - SERVER2_URL=http://server2:8080
+    depends_on:
+      - server1
+      - server2
+
+  # === Benchmarks ===
+  bench:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/bench_vs_apcu.php"]
+
+  bench-ops:
+    build:
+      <<: *build-common
+      args:
+        PHP_VERSION: "8.4"
+        SERIALIZERS: "igbinary msgpack apcu"
+    command: ["frankenphp", "php-cli", "/app/tests/bench_operations.php"]
